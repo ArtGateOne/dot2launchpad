@@ -12,10 +12,12 @@ var midi_out = 'LPMiniMK3 MIDI';     //set correct midi out device name
 var page_sw = 1;              //Auto Page switch on dot2  1 = ON, 0 = OFF
 var blackout_toggle_mode = 0; //BlackOut toggle mode    1 = ON, 0 = OFF
 var executors_view = 0;       //default executors view   0 = bottom, 1 = top
+var get_feadback = 1;
 
 
 //----------------------------------------------------------------------------------------------
-
+var faderTime = [0, 0];
+const NS_PER_SEC = 1e9;
 
 var testnote = 0;
 var exec_time = 0;
@@ -39,6 +41,9 @@ var controller = 0;
 var matrix = [213, 212, 211, 210, 209, 208, 207, 206, 113, 112, 111, 110, 109, 108, 107, 106, 13, 12, 11, 10, 9, 8, 7, 6, 13, 12, 11, 10, 9, 8, 7, 6];
 var exec = JSON.parse('{"index":[[5,4,3,2,1,0,0,0],[13,12,11,10,9,8,7,6],[21,20,19,18,17,16,15,14]]}');
 
+for (i = 0; i <= 21; i++) { //fader time set
+  faderTime[i] = process.hrtime();
+}
 
 //{"requestType":"playbacks","startIndex":[300,400,500,600,700,800],"itemsCount":[16,16,16,16,16,16],"pageIndex":0,"itemsType":[3,3,3,3,3,3],"view":3,"execButtonViewMode":2,"buttonsViewMode":0,"session":22,"maxRequests":1}
 function interval() {
@@ -67,6 +72,20 @@ console.log("Connecting to midi device " + midi_in);
 //open midi device
 var input = new easymidi.Input(midi_in);
 var output = new easymidi.Output(midi_out);
+
+
+
+input.on('cc', function (msg) {
+
+
+  diff = process.hrtime(faderTime[msg.controller]);
+  if ((diff[0] * NS_PER_SEC + diff[1]) >= 10000000 | msg.value == 0 | msg.value == 127) {
+    faderTime[msg.controller] = process.hrtime();
+    client.send('{"requestType":"playbacks_userInput","execIndex":' + (msg.controller) + ',"pageIndex":' + pageIndex + ',"faderValue":' + (msg.value / 127) + ',"type":1,"session":' + session + ',"maxRequests":0}');
+  }
+  //client.send('{"requestType":"playbacks_userInput","execIndex":' + (msg.controller) + ',"pageIndex":' + pageIndex + ',"faderValue":' + (msg.value / 127) + ',"type":1,"session":' + session + ',"maxRequests":0}');
+
+});
 
 
 
@@ -113,7 +132,6 @@ client.onclose = function () {
     output.send('pitch', { value: 0, channel: i });
     sleep(10, function () { });
   }
-
 
   input.close();
   output.close();
@@ -173,33 +191,31 @@ client.onmessage = function (e) {
 
 
     if (obj.responseType == "playbacks") {//recive data from dot & send to Launchpad
-      var channel = 7;
-      for (var i = 0; i <= 5; i++) {
-        /*
-        if (executors_view == 0) {
-          output.send('noteon', { note: (channel), velocity: ((obj.itemGroups[2].items[i][0].isRun) * 127), channel: 0 });//executor top 
-          output.send('noteon', { note: ((channel) + 8), velocity: ((obj.itemGroups[1].items[i][0].isRun) * 127), channel: 0 });//executor top
-          output.send('noteon', { note: ((channel) + 16), velocity: ((obj.itemGroups[0].items[i][0].isRun)), channel: 0 });//executor fader bottom 1
-          output.send('noteon', { note: ((channel) + 24), velocity: ((obj.itemGroups[0].items[i][0].isRun) * 127), channel: 0 });//executor fader bottom 0
-        } else {
-          output.send('noteon', { note: (channel), velocity: ((obj.itemGroups[2].items[i][0].isRun) * 127), channel: 0 });//executor top 
-          output.send('noteon', { note: ((channel) + 8), velocity: ((obj.itemGroups[1].items[i][0].isRun) * 127), channel: 0 });//executor top
-          output.send('noteon', { note: ((channel) + 24), velocity: ((obj.itemGroups[2].items[i][0].isRun) * 127), channel: 0 });//executor top 
-          output.send('noteon', { note: ((channel) + 16), velocity: ((obj.itemGroups[1].items[i][0].isRun) * 127), channel: 0 });//executor top
-
-        }*/
-        var value = (obj.itemGroups[0].items[i][0].executorBlocks[0].fader.v) * 127;//fader
-        //console.log(obj.itemGroups[0].items[i][0]);
-
-        output.send('cc', { value: (value), controller: (i) });
-        //channel--;
-
-      }
-
+      if (obj.responseSubType == 2) {
+        if (get_feadback == 1) {
+          for (var i = 0; i < 20; i++) {
+            /*
+            if (executors_view == 0) {
+              output.send('noteon', { note: (channel), velocity: ((obj.itemGroups[2].items[i][0].isRun) * 127), channel: 0 });//executor top 
+              output.send('noteon', { note: ((channel) + 8), velocity: ((obj.itemGroups[1].items[i][0].isRun) * 127), channel: 0 });//executor top
+              output.send('noteon', { note: ((channel) + 16), velocity: ((obj.itemGroups[0].items[i][0].isRun)), channel: 0 });//executor fader bottom 1
+              output.send('noteon', { note: ((channel) + 24), velocity: ((obj.itemGroups[0].items[i][0].isRun) * 127), channel: 0 });//executor fader bottom 0
+            } else {
+              output.send('noteon', { note: (channel), velocity: ((obj.itemGroups[2].items[i][0].isRun) * 127), channel: 0 });//executor top 
+              output.send('noteon', { note: ((channel) + 8), velocity: ((obj.itemGroups[1].items[i][0].isRun) * 127), channel: 0 });//executor top
+              output.send('noteon', { note: ((channel) + 24), velocity: ((obj.itemGroups[2].items[i][0].isRun) * 127), channel: 0 });//executor top 
+              output.send('noteon', { note: ((channel) + 16), velocity: ((obj.itemGroups[1].items[i][0].isRun) * 127), channel: 0 });//executor top
+    
+            }*/
+            var value = (obj.itemGroups[0].items[i][0].executorBlocks[0].fader.v) * 127;//fader
+            output.send('cc', { value: (value), controller: (i), channel: 0 });
+            get_feadback = 0;
+          }
+        }
+      };
+      if (obj.responseSubType == 3) { };
     }
-
   }
-
 }
 
 //sleep function
