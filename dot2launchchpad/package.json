@@ -1,0 +1,26 @@
+{
+  "name": "dot2launchchpad",
+  "version": "1.0.0",
+  "description": "none",
+  "main": "dot2launchpad.js",
+  "scripts": {
+    "test": "none"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ArtGateOne/dot2launchpad.git"
+  },
+  "keywords": [
+    "none"
+  ],
+  "author": "ArtGateOne",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ArtGateOne/dot2launchpad/issues"
+  },
+  "homepage": "https://github.com/ArtGateOne/dot2launchpad#readme",
+  "dependencies": {
+    "easymidi": "^2.1.0",
+    "websocket": "^1.0.34"
+  }
+}
