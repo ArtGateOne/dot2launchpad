@@ -19,9 +19,8 @@ var get_feadback = 1;
 var faderTime = [0, 0];
 const NS_PER_SEC = 1e9;
 
-var testnote = 0;
-var exec_time = 0;
-var prog_time = 0;
+
+
 var set = 0;
 var clear = 0;
 var high = 0;
@@ -32,23 +31,23 @@ var speedmaster3 = 60;
 var speedmaster4 = 60;
 var blackout = 0;
 var grandmaster = 100;
-var gmvalue = 43;
 var session = 0;
-var pageIndex = 0;
-var wing = 0;
 var request = 0;
-var controller = 0;
-var matrix = [213, 212, 211, 210, 209, 208, 207, 206, 113, 112, 111, 110, 109, 108, 107, 106, 13, 12, 11, 10, 9, 8, 7, 6, 13, 12, 11, 10, 9, 8, 7, 6];
-var exec = JSON.parse('{"index":[[5,4,3,2,1,0,0,0],[13,12,11,10,9,8,7,6],[21,20,19,18,17,16,15,14]]}');
+
+var exec = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121];
 
 for (i = 0; i <= 21; i++) { //fader time set
   faderTime[i] = process.hrtime();
 }
 
-//{"requestType":"playbacks","startIndex":[300,400,500,600,700,800],"itemsCount":[16,16,16,16,16,16],"pageIndex":0,"itemsType":[3,3,3,3,3,3],"view":3,"execButtonViewMode":2,"buttonsViewMode":0,"session":22,"maxRequests":1}
+
 function interval() {
   if (session > 0) {
-    client.send('{"requestType":"playbacks","startIndex":[0,100,200],"itemsCount":[20,20,20],"pageIndex":' + pageIndex + ',"itemsType":[2,3,3],"view":2,"execButtonViewMode":1,"buttonsViewMode":0,"session":' + session + ',"maxRequests":1}');
+    client.send('{"requestType":"playbacks","startIndex":[0,100,200],"itemsCount":[22,22,22],"pageIndex":0,"itemsType":[2,3,3],"view":2,"execButtonViewMode":1,"buttonsViewMode":0,"session":' + session + ',"maxRequests":1}');
+    client.send('{"requestType":"playbacks","startIndex":[300,400,500,600,700,800],"itemsCount":[16,16,16,16,16,16],"pageIndex":0,"itemsType":[3,3,3,3,3,3],"view":3,"execButtonViewMode":2,"buttonsViewMode":0,"session":' + session + ',"maxRequests":1}');
+    if (request == 10) {
+      client.send('{"requestType":"getdata","data":"set,clear,high","session":' + session + ',"maxRequests":1}');
+    }
   }
 };
 
@@ -76,15 +75,28 @@ var output = new easymidi.Output(midi_out);
 
 
 input.on('cc', function (msg) {
-
-
-  diff = process.hrtime(faderTime[msg.controller]);
+  /*diff = process.hrtime(faderTime[msg.controller]);
   if ((diff[0] * NS_PER_SEC + diff[1]) >= 10000000 | msg.value == 0 | msg.value == 127) {
     faderTime[msg.controller] = process.hrtime();
-    client.send('{"requestType":"playbacks_userInput","execIndex":' + (msg.controller) + ',"pageIndex":' + pageIndex + ',"faderValue":' + (msg.value / 127) + ',"type":1,"session":' + session + ',"maxRequests":0}');
-  }
-  //client.send('{"requestType":"playbacks_userInput","execIndex":' + (msg.controller) + ',"pageIndex":' + pageIndex + ',"faderValue":' + (msg.value / 127) + ',"type":1,"session":' + session + ',"maxRequests":0}');
+    client.send('{"requestType":"playbacks_userInput","execIndex":' + (msg.controller) + ',"pageIndex":0,"faderValue":' + (msg.value / 127) + ',"type":1,"session":' + session + ',"maxRequests":0}');
+  }*/
+  client.send('{"requestType":"playbacks_userInput","execIndex":' + (msg.controller) + ',"pageIndex":0,"faderValue":' + (msg.value / 127) + ',"type":1,"session":' + session + ',"maxRequests":0}');
+});
 
+input.on('noteon', function (msg) {
+  if (msg.note <= 21) {
+    if (msg.velocity == 127) {
+      client.send('{"requestType":"playbacks_userInput","cmdline":"","execIndex":' + msg.note + ',"pageIndex":0,"buttonId":' + msg.channel + ',"pressed":true,"released":false,"type":0,"session":' + session + ',"maxRequests":0}');
+    } else {
+      client.send('{"requestType":"playbacks_userInput","cmdline":"","execIndex":' + msg.note + ',"pageIndex":0,"buttonId":' + msg.channel + ',"pressed":false,"released":true,"type":0,"session":' + session + ',"maxRequests":0}');
+    }
+  } else if (msg.note > 21 && msg.note < 127) {
+    if (msg.velocity == 127) {
+      client.send('{"requestType":"playbacks_userInput","cmdline":"","execIndex":' + (exec[msg.note]) + ',"pageIndex":0,"buttonId":0,"pressed":true,"released":false,"type":0,"session":' + session + ',"maxRequests":0}');
+    } else {
+      client.send('{"requestType":"playbacks_userInput","cmdline":"","execIndex":' + (exec[msg.note]) + ',"pageIndex":0,"buttonId":0,"pressed":false,"released":true,"type":0,"session":' + session + ',"maxRequests":0}');
+    }
+  }
 });
 
 
@@ -92,7 +104,7 @@ input.on('cc', function (msg) {
 
 
 
-//{"requestType":"getdata","data":"set,clear,high","session":22,"maxRequests":1}
+
 
 //WEBSOCKET-------------------
 
@@ -115,38 +127,37 @@ client.onopen = function () {
 };
 
 client.onclose = function () {
+  setInterval(interval, 0);
   console.log('Client Closed');
-
-  for (i = 0; i <= 127; i++) {
-    output.send('noteon', { note: i, velocity: 0, channel: 0 });
-    sleep(10, function () { });
-  }
-
-  for (i = 0; i <= 127; i++) {
-    output.send('cc', { controller: i, value: 0, channel: 0 });
-    sleep(10, function () { });
-  }
-
-
-  for (i = 0; i <= 7; i++) {
-    output.send('pitch', { value: 0, channel: i });
-    sleep(10, function () { });
-  }
+  /*
+    for (i = 0; i <= 127; i++) {//clear led status
+      output.send('noteon', { note: i, velocity: 0, channel: 0 });
+      sleep(10, function () { });
+    }
+  
+    for (i = 0; i <= 127; i++) {
+      output.send('cc', { controller: i, value: 0, channel: 0 });
+      sleep(10, function () { });
+    }
+  
+  
+    for (i = 0; i <= 7; i++) {
+      output.send('pitch', { value: 0, channel: i });
+      sleep(10, function () { });
+    }*/
 
   input.close();
   output.close();
-  //process.exit();
+  process.exit();
 };
 
 client.onmessage = function (e) {
 
   request = request + 1;
 
-  if (request > 9) {
+  if (request > 10) {
     client.send('{"session":' + session + '}');
-
-    client.send('{"requestType":"getdata","data":"set,clear,high","session":' + session + ',"maxRequests":1}');
-
+    //client.send('{"requestType":"getdata","data":"set,clear,high","session":' + session + ',"maxRequests":1}');
     request = 0;
   }
 
@@ -176,10 +187,8 @@ client.onmessage = function (e) {
       setInterval(interval, 100);//80
       console.log("...LOGGED");
       console.log("SESSION " + session);
-      if (page_sw == 1) {
-        client.send('{"command":"Page ' + (pageIndex + 1) + '","session":' + session + ',"requestType":"command","maxRequests":0}');
-      }
-      //client.send('{"requestType":"playbacks","startIndex":[6,106,206],"itemsCount":[8,8,8],"pageIndex":' + pageIndex + ',"itemsType":[2,3,3],"view":2,"execButtonViewMode":1,"buttonsViewMode":0,"session":' + session + ',"maxRequests":1}');
+
+      //client.send('{"requestType":"playbacks","startIndex":[6,106,206],"itemsCount":[8,8,8],"pageIndex":0,"itemsType":[2,3,3],"view":2,"execButtonViewMode":1,"buttonsViewMode":0,"session":' + session + ',"maxRequests":1}');
     }
 
 
@@ -192,25 +201,22 @@ client.onmessage = function (e) {
 
     if (obj.responseType == "playbacks") {//recive data from dot & send to Launchpad
       if (obj.responseSubType == 2) {
-        if (get_feadback == 1) {
-          for (var i = 0; i < 20; i++) {
-            /*
-            if (executors_view == 0) {
-              output.send('noteon', { note: (channel), velocity: ((obj.itemGroups[2].items[i][0].isRun) * 127), channel: 0 });//executor top 
-              output.send('noteon', { note: ((channel) + 8), velocity: ((obj.itemGroups[1].items[i][0].isRun) * 127), channel: 0 });//executor top
-              output.send('noteon', { note: ((channel) + 16), velocity: ((obj.itemGroups[0].items[i][0].isRun)), channel: 0 });//executor fader bottom 1
-              output.send('noteon', { note: ((channel) + 24), velocity: ((obj.itemGroups[0].items[i][0].isRun) * 127), channel: 0 });//executor fader bottom 0
-            } else {
-              output.send('noteon', { note: (channel), velocity: ((obj.itemGroups[2].items[i][0].isRun) * 127), channel: 0 });//executor top 
-              output.send('noteon', { note: ((channel) + 8), velocity: ((obj.itemGroups[1].items[i][0].isRun) * 127), channel: 0 });//executor top
-              output.send('noteon', { note: ((channel) + 24), velocity: ((obj.itemGroups[2].items[i][0].isRun) * 127), channel: 0 });//executor top 
-              output.send('noteon', { note: ((channel) + 16), velocity: ((obj.itemGroups[1].items[i][0].isRun) * 127), channel: 0 });//executor top
-    
-            }*/
-            var value = (obj.itemGroups[0].items[i][0].executorBlocks[0].fader.v) * 127;//fader
-            output.send('cc', { value: (value), controller: (i), channel: 0 });
-            get_feadback = 0;
+
+
+
+        for (var i = 0; i <= 21; i++) {
+          if (get_feadback == 1) {//send fader feedback
+            var value = (obj.itemGroups[0].items[i][0].executorBlocks[0].fader.v) * 127;
+            output.send('cc', { value: (value), controller: (i), channel: 0 });//fader feedback
+            if (i == 21) {
+              get_feadback = 0;
+            }
           }
+          output.send('noteon', { note: (i), velocity: (obj.itemGroups[0].items[i][0].isRun), channel: 0 });//executor bottom feedback
+          output.send('noteon', { note: (i), velocity: (obj.itemGroups[0].items[i][0].isRun), channel: 1 });//executor bottom feedback
+
+          output.send('noteon', { note: (i + 22), velocity: (obj.itemGroups[2].items[i][0].isRun), channel: 0 });//executor top feedback
+          output.send('noteon', { note: (i + 44), velocity: (obj.itemGroups[1].items[i][0].isRun), channel: 0 });//executor top feedback
         }
       };
       if (obj.responseSubType == 3) { };
