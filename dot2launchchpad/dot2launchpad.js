@@ -1,4 +1,4 @@
-//dot2launchpad by ArtGateOne - version 1.2 20.04.2022
+//dot2launchpad by ArtGateOne - version 1.3 22.04.2022
 
 var easymidi = require('easymidi');
 var W3CWebSocket = require('websocket')
@@ -35,7 +35,7 @@ var session = 0;
 var request = 0;
 
 var exec = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121];
-
+var exec_bwing = [300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311, 312, 313, 314, 315, 400, 401, 402, 403, 404, 405, 406, 407, 408, 409, 410, 411, 412, 413, 414, 415, 500, 501, 502, 503, 504, 505, 506, 507, 508, 509, 510, 511, 512, 513, 514, 515, 600, 601, 602, 603, 604, 605, 606, 607, 608, 609, 610, 611, 612, 613, 614, 615, 700, 701, 702, 703, 704, 705, 706, 707, 708, 709, 710, 711, 712, 713, 714, 715, 800, 801, 802, 803, 804, 805, 806, 807, 808, 809, 810, 811, 812, 813, 814, 815]
 for (i = 0; i <= 21; i++) { //fader time set
   faderTime[i] = process.hrtime();
 }
@@ -84,17 +84,25 @@ input.on('cc', function (msg) {
 });
 
 input.on('noteon', function (msg) {
-  if (msg.note <= 21) {
-    if (msg.velocity == 127) {
-      client.send('{"requestType":"playbacks_userInput","cmdline":"","execIndex":' + msg.note + ',"pageIndex":0,"buttonId":' + msg.channel + ',"pressed":true,"released":false,"type":0,"session":' + session + ',"maxRequests":0}');
-    } else {
-      client.send('{"requestType":"playbacks_userInput","cmdline":"","execIndex":' + msg.note + ',"pageIndex":0,"buttonId":' + msg.channel + ',"pressed":false,"released":true,"type":0,"session":' + session + ',"maxRequests":0}');
+  if (msg.channel < 2) {
+    if (msg.note <= 21) {
+      if (msg.velocity == 127) {
+        client.send('{"requestType":"playbacks_userInput","cmdline":"","execIndex":' + msg.note + ',"pageIndex":0,"buttonId":' + msg.channel + ',"pressed":true,"released":false,"type":0,"session":' + session + ',"maxRequests":0}');
+      } else {
+        client.send('{"requestType":"playbacks_userInput","cmdline":"","execIndex":' + msg.note + ',"pageIndex":0,"buttonId":' + msg.channel + ',"pressed":false,"released":true,"type":0,"session":' + session + ',"maxRequests":0}');
+      }
+    } else if (msg.note > 21 && msg.note < 127) {
+      if (msg.velocity == 127) {
+        client.send('{"requestType":"playbacks_userInput","cmdline":"","execIndex":' + (exec[msg.note]) + ',"pageIndex":0,"buttonId":0,"pressed":true,"released":false,"type":0,"session":' + session + ',"maxRequests":0}');
+      } else {
+        client.send('{"requestType":"playbacks_userInput","cmdline":"","execIndex":' + (exec[msg.note]) + ',"pageIndex":0,"buttonId":0,"pressed":false,"released":true,"type":0,"session":' + session + ',"maxRequests":0}');
+      }
     }
-  } else if (msg.note > 21 && msg.note < 127) {
+  } else if (msg.channel == 2) {
     if (msg.velocity == 127) {
-      client.send('{"requestType":"playbacks_userInput","cmdline":"","execIndex":' + (exec[msg.note]) + ',"pageIndex":0,"buttonId":0,"pressed":true,"released":false,"type":0,"session":' + session + ',"maxRequests":0}');
+      client.send('{"requestType":"playbacks_userInput","cmdline":"","execIndex":' + (exec_bwing[msg.note]) + ',"pageIndex":0,"buttonId":0,"pressed":true,"released":false,"type":0,"session":' + session + ',"maxRequests":0}');
     } else {
-      client.send('{"requestType":"playbacks_userInput","cmdline":"","execIndex":' + (exec[msg.note]) + ',"pageIndex":0,"buttonId":0,"pressed":false,"released":true,"type":0,"session":' + session + ',"maxRequests":0}');
+      client.send('{"requestType":"playbacks_userInput","cmdline":"","execIndex":' + (exec_bwing[msg.note]) + ',"pageIndex":0,"buttonId":0,"pressed":false,"released":true,"type":0,"session":' + session + ',"maxRequests":0}');
     }
   }
 });
@@ -114,7 +122,7 @@ client.onerror = function () {
 
 client.onopen = function () {
   console.log('WebSocket Client Connected');
-  setInterval(interval, 0);//80
+
 
   function sendNumber() {
     if (client.readyState === client.OPEN) {
@@ -153,9 +161,9 @@ client.onclose = function () {
 
 client.onmessage = function (e) {
 
-  request = request + 1;
+  request++;
 
-  if (request > 10) {
+  if (request >= 10) {
     client.send('{"session":' + session + '}');
     //client.send('{"requestType":"getdata","data":"set,clear,high","session":' + session + ',"maxRequests":1}');
     request = 0;
@@ -173,6 +181,7 @@ client.onmessage = function (e) {
     if (obj.status == "server ready") {
       client.send('{"session":0}')
     }
+
     if (obj.forceLogin === true) {
       session = (obj.session);
       client.send('{"requestType":"login","username":"remote","password":"2c18e486683a3db1e645ad8523223b72","session":' + session + ',"maxRequests":10}')
@@ -187,13 +196,10 @@ client.onmessage = function (e) {
       setInterval(interval, 100);//80
       console.log("...LOGGED");
       console.log("SESSION " + session);
-
-      //client.send('{"requestType":"playbacks","startIndex":[6,106,206],"itemsCount":[8,8,8],"pageIndex":0,"itemsType":[2,3,3],"view":2,"execButtonViewMode":1,"buttonsViewMode":0,"session":' + session + ',"maxRequests":1}');
     }
 
 
     if (obj.responseType == "getdata") {
-      //"data":[{"set":"0"}],"worldIndex":0}){
       //console.log(e.data);
     }
 
@@ -219,7 +225,21 @@ client.onmessage = function (e) {
           output.send('noteon', { note: (i + 44), velocity: (obj.itemGroups[1].items[i][0].isRun), channel: 0 });//executor top feedback
         }
       };
-      if (obj.responseSubType == 3) { };
+      if (obj.responseSubType == 3) {
+
+        for (var i = 0; i < 16; i++) {
+
+          output.send('noteon', { note: (i), velocity: (obj.itemGroups[0].items[i][0].isRun), channel: 2 });//executor 301
+          output.send('noteon', { note: (i + 16), velocity: (obj.itemGroups[1].items[i][0].isRun), channel: 2 });//executor 401
+          output.send('noteon', { note: (i + 32), velocity: (obj.itemGroups[2].items[i][0].isRun), channel: 2 });//executor 501
+          output.send('noteon', { note: (i + 48), velocity: (obj.itemGroups[3].items[i][0].isRun), channel: 2 });//executor 601
+          output.send('noteon', { note: (i + 64), velocity: (obj.itemGroups[4].items[i][0].isRun), channel: 2 });//executor 701
+          output.send('noteon', { note: (i + 80), velocity: (obj.itemGroups[5].items[i][0].isRun), channel: 2 });//executor 801
+
+        }
+
+
+      };
     }
   }
 }
