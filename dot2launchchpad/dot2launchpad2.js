@@ -8,8 +8,8 @@ var client = new W3CWebSocket('ws://localhost:80/'); //U can change localhost(12
 
 
 //config
-var midi_in = 'MIDIIN2 (LPMiniMK3 MIDI)';      //set correct midi in device name
-var midi_out = 'MIDIOUT2 (LPMiniMK3 MIDI)';     //set correct midi out device name
+var midi_in = 'MIDIIN4 (LPMiniMK3 MIDI)';      //set correct midi in device name
+var midi_out = 'MIDIOUT4 (LPMiniMK3 MIDI)';     //set correct midi out device name
 var page_sw = 1;              //Auto Page switch on dot2  1 = ON, 0 = OFF
 var blackout_toggle_mode = 0; //BlackOut toggle mode    1 = ON, 0 = OFF
 var executors_view = 0;       //default executors view   0 = bottom, 1 = top
